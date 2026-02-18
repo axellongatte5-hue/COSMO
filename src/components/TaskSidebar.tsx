@@ -1,11 +1,20 @@
 import React, { useState } from 'react';
-import { useTasks, Task } from '../context/TaskContext';
+import { useTasks as useTasksContext } from '../context/TaskContext';
+import { usePendingTasks, Task } from '@/modules/tasks';
 import { Search, Clock, Bookmark, Filter, X, CheckCircle2 } from 'lucide-react';
 import TaskModal from './TaskModal';
 import CollaboratorAvatars from './CollaboratorAvatars';
 
+interface TaskSidebarProps {
+  onClose?: () => void;
+  onDragStart?: () => void;
+}
+
 const TaskSidebar: React.FC<TaskSidebarProps> = ({ onClose, onDragStart }) => {
-  const { tasks, colorSettings, categories, events, priorityRange, friends } = useTasks();
+  // Use new module for tasks (read-only)
+  const { data: tasks = [], isLoading } = usePendingTasks();
+  // Still need colorSettings, categories, events, priorityRange, friends from TaskContext
+  const { colorSettings, categories, events, priorityRange, friends } = useTasksContext();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
@@ -13,9 +22,8 @@ const TaskSidebar: React.FC<TaskSidebarProps> = ({ onClose, onDragStart }) => {
   const [showTutorial, setShowTutorial] = useState(true);
   const [selectedTaskForModal, setSelectedTaskForModal] = useState<Task | null>(null);
 
-  // Filter tasks (exclude completed ones and respect priority range)
+  // Filter tasks (usePendingTasks already returns non-completed tasks)
   const availableTasks = tasks.filter(task => 
-    !task.completed &&
     task.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
     (filterCategory === '' || task.category === filterCategory) &&
     (filterPriority === '' || task.priority.toString() === filterPriority) &&
@@ -40,6 +48,24 @@ const TaskSidebar: React.FC<TaskSidebarProps> = ({ onClose, onDragStart }) => {
   const isTaskPlacedInCalendar = (taskId: string) => {
     return events.some(event => event.taskId === taskId);
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="w-56 lg:w-72 lg:sm:w-80 border-r flex flex-col h-full" style={{ backgroundColor: 'rgb(var(--nav-bg))', borderColor: 'rgb(var(--nav-border))' }}>
+        <div className="p-4 border-b" style={{ borderColor: 'rgb(var(--nav-border))' }}>
+          <h2 className="text-lg font-semibold" style={{ color: 'rgb(var(--color-text-primary))' }}>Tâches disponibles</h2>
+        </div>
+        <div className="flex-1 p-4">
+          <div className="animate-pulse space-y-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-20 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
     return (
       <div className="w-56 lg:w-72 lg:sm:w-80 border-r flex flex-col h-full" style={{ backgroundColor: 'rgb(var(--nav-bg))', borderColor: 'rgb(var(--nav-border))' }}>
